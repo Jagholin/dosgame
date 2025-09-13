@@ -1,12 +1,12 @@
 #include <dpmi.h>
 #include <go32.h>
+#include <pc.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
-#include <pc.h>
 
-#include "defs.h"
+#include "DEFS.H"
 
 static int base_io = -1, irq = -1, dma8 = -1, dma16 = -1, mixer_io = -1,
            mpu_io = -1;
@@ -16,8 +16,7 @@ int realmem_segment = 0;
 _go32_dpmi_seginfo old_interrupt_seginfo, my_interrupt_seginfo;
 
 // Interrupt routine when the SB is done with the chunk
-void sb_intr() {
-}
+void sb_intr() {}
 
 void init_sb_intr() {
   // 1. Allocate 128 kB for the page aligned block of memory in the first MB
@@ -28,11 +27,12 @@ void init_sb_intr() {
   }
   // Calculate interrupt vector based on IRQ
   short int_vec = 0x08 + irq;
-  if (irq >= 8) int_vec = 0x70 + irq - 8;
+  if (irq >= 8)
+    int_vec = 0x70 + irq - 8;
 
   // The following is based on https://delorie.com/djgpp/v2faq/faq18_9.html
-  int res = _go32_dpmi_get_protected_mode_interrupt_vector(int_vec,
-                                                           &old_interrupt_seginfo);
+  int res = _go32_dpmi_get_protected_mode_interrupt_vector(
+      int_vec, &old_interrupt_seginfo);
   if (res != 0) {
     printf("Can't get protected mode interrupt vector\n");
     exit(EXIT_FAILURE);
@@ -47,25 +47,23 @@ void init_sb_intr() {
     exit(EXIT_FAILURE);
   }
 
-  //TODO: Lock memory that the interrupt uses
+  // TODO: Lock memory that the interrupt uses
 }
 
 void release_sb_intr() {
   // Calculate interrupt vector based on IRQ
   short int_vec = 0x08 + irq;
-  if (irq >= 8) int_vec = 0x70 + irq - 8;
+  if (irq >= 8)
+    int_vec = 0x70 + irq - 8;
   _go32_dpmi_set_protected_mode_interrupt_vector(int_vec,
                                                  &old_interrupt_seginfo);
   __dpmi_free_dos_memory(realmem_selector);
 }
 
 // SB DMA routines
-void init_sb_dma() {
+void init_sb_dma() {}
 
-}
-
-void release_sb_dma() {
-}
+void release_sb_dma() {}
 
 // Initializes soundblaster's DSP
 RESULT init_dsp() {
@@ -94,11 +92,11 @@ RESULT read_env_string() {
   char *blaster_env = getenv("BLASTER");
   char *blaster_envc = NULL;
   char *env_tok = NULL;
-  //int res = 0;
-  //bool initres = false;
+  // int res = 0;
+  // bool initres = false;
   CHECKERR(blaster_env == NULL, "BLASTER environment variable isn't defined");
 
-  blaster_envc = malloc(strlen(blaster_env) + 1);
+  blaster_envc = (char *)malloc(strlen(blaster_env) + 1);
   OOMERR(blaster_envc);
   strcpy(blaster_envc, blaster_env);
 
@@ -161,5 +159,4 @@ onerror:
   return result;
 }
 
-void release_blaster() {
-}
+void release_blaster() {}

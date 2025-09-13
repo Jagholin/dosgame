@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "defs.h"
-#include "sblaster.h"
+#include "DEFS.H"
+#include "SBLASTER.H"
 
-void main() {
+int main() {
   printf("Welcome to the game.\n");
   printf("Initializing sound card...\n");
   RESULT result;
@@ -15,5 +15,5 @@ void main() {
 onreturn:
   release_blaster();
 onerror:
-  return;
+  return 0;
 }

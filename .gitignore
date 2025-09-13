@@ -1,3 +1,7 @@
+# Clangd configuration
+.clangd
+# Direnv configuration
+.envrc
 # Prerequisites
 *.d
 
