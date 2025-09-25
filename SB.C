@@ -279,11 +279,11 @@ void sb_reset() {
   // wait for some number of cycles
   for (i = 0; i < 100; ++i) {
   }
-  OUT(sb_ioaddr + 0x6, 0);
+  OUT(sb_ioaddr + SB_DSP_RESET, 0);
   for (i = 0; i < 1000; ++i) {
-    unsigned int data = INP(sb_ioaddr + 0xe);
+    unsigned int data = INP(sb_ioaddr + SB_DSP_DATA_AVAIL);
     if (data & 0x80) {
-      data = INP(sb_ioaddr + 0xa);
+      data = INP(sb_ioaddr + SB_DSP_READ_DATA);
       if (data == 0xaa) {
         printf("Successful init after %d loops\n", i);
         res = RESULT_OK;
@@ -428,11 +428,11 @@ void sb_cleanup_ints() {
 int sb_cleanup() {
   if (dosmem.size == -1) /* There is nothing to free */
     return (1);
-  if (!_go32_dpmi_free_dos_memory(&dosmem)) {
+  if (_go32_dpmi_free_dos_memory(&dosmem)) {
     printf("Unable to free dos memory\n");
-    return (0);
+    return (1);
   }
-  return (1);
+  return (0);
 }
 
 int sb_read_counter(void)
