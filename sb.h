@@ -4,7 +4,7 @@
 #include <dpmi.h>
 #include <go32.h>
 
-#include "DEFS.H"
+#include "defs.h"
 
 /*
  * Offsets relative to base I/O address.

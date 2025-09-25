@@ -2,9 +2,9 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "DEFS.H"
+#include "defs.h"
 // #include "SBLASTER.H"
-#include "SB.H"
+#include "sb.h"
 
 int _crt0_startup_flags = _CRT0_FLAG_LOCK_MEMORY | _CRT0_FLAG_NONMOVE_SBRK;
 

@@ -36,8 +36,8 @@
  *                                  - removed fixed playback and recording
  */
 
-#include "DEFS.H"
-#include "SB.H"
+#include "sb.h"
+#include "defs.h"
 #include <dos.h>
 #include <pc.h>
 #include <stdio.h>

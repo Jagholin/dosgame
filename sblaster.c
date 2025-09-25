@@ -9,7 +9,7 @@
 #include <string.h>
 #include <sys/farptr.h>
 
-#include "DEFS.H"
+#include "defs.h"
 
 static int base_io = -1, irq = -1, dma8 = -1, dma16 = -1, mixer_io = -1,
            mpu_io = -1;

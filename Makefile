@@ -1,7 +1,9 @@
-OUTPUT = GAME.exe
+OUTPUT = game.exe
+# It's a bit of a pain to transform the case, so we just use 2nd var
+OUTPUT_L = GAME.EXE
 #VPATH=src
-CFILES = $(wildcard *.C)
-OBJS = $(CFILES:.C=.O) # IRQWRAP.O
+CFILES = $(wildcard *.c)
+OBJS = $(CFILES:.c=.o) # IRQWRAP.O
 LDFLAGS += -lm
 CFLAGS += -std=gnu99
 CC ?= gcc
@@ -11,7 +13,7 @@ all: $(OUTPUT)
 $(OUTPUT): $(OBJS)
 	$(CC) -ggdb -o $(OUTPUT) $(OBJS) $(LDFLAGS) 
 
-%.O: %.C *.H
+%.o: %.c *.h
 	$(CC) -c -x c $(CFLAGS) -ggdb $< -o $@
 
 #IRQWRAP.O: IRQWRAP.S
@@ -20,5 +22,5 @@ $(OUTPUT): $(OBJS)
 .PHONY: clean
 
 clean:
-	-rm -f *.O $(OUTPUT)
+	-rm -f *.o *.O $(OUTPUT) $(OUTPUT_L)
 
