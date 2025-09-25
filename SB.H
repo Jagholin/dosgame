@@ -81,7 +81,7 @@
 #define SB_SPEAKER_ON 0xD1
 #define SB_SPEAKER_OFF 0xD3
 // #define SB_DSP_ID 0xE0
-// #define SB_DSP_VER 0xE1
+#define SB_DSP_VER 0xE1
 // #define SB_MDAC1 0x61
 // #define SB_MDAC2 0x62
 // #define SB_MDAC3 0x63
@@ -112,7 +112,7 @@ RESULT sb_getparams();
 int sb_initcard();
 int sb_init_buffers();
 int sb_init();
-int sb_read_dac(int Base);
+unsigned char sb_read_dac();
 
 void sb_install_interrupts(void (*sb_intr)(_go32_dpmi_registers *));
 void sb_install_rm_interrupt(void (*sb_intr)(_go32_dpmi_registers *));
@@ -123,6 +123,7 @@ void sb_cleanup_ints();
 int sb_cleanup();
 
 int sb_read_counter(void);
+void sb_dsp_version(short *major, short *minor);
 void sb_reset(void);
 void kbclear(void);
 

@@ -104,7 +104,7 @@ static int HIGHSPEED; /* flag for normal/highspeed DMA */
  * effects should be "instantaneous".
  *
  */
-#define DMA_CHUNK (1024)
+#define DMA_CHUNK (2048)
 
 static char sb_stream_buf[DMA_CHUNK];
 static char sb_stream_silence[DMA_CHUNK];
@@ -294,14 +294,12 @@ void sb_reset() {
   // return res;
 }
 
-int sb_read_dac(int Base) {
-  int i;
-
-  for (i = 0; i < 10000; i++) {
-    if (inportb(Base + SB_DSP_DATA_AVAIL) & 0x080)
+unsigned char sb_read_dac() {
+  for (;;) {
+    if (inportb(sb_ioaddr + SB_DSP_DATA_AVAIL) & 0x080)
       break;
   }
-  return (inportb(Base + 0x0A));
+  return (inportb(sb_ioaddr + SB_DSP_READ_DATA));
 }
 
 void sb_install_interrupts(void (*sb_intr)(_go32_dpmi_registers *)) {
@@ -441,6 +439,12 @@ int sb_read_counter(void)
   outportb(SB_DMA_FF, 0);
   return (inportb(SB_DMA + 2 * sb_dmachan + 1) +
           256 * inportb(SB_DMA + 2 * sb_dmachan + 1));
+}
+
+void sb_dsp_version(short *major, short *minor) {
+  sb_writedac(SB_DSP_VER);
+  *major = sb_read_dac();
+  *minor = sb_read_dac();
 }
 /* Jagholin: I just copied this function as-is because it's some DOS black magic
  * This doesn't have anything to do with sound card.

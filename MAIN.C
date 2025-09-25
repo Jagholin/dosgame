@@ -9,17 +9,27 @@
 int _crt0_startup_flags = _CRT0_FLAG_LOCK_MEMORY | _CRT0_FLAG_NONMOVE_SBRK;
 
 void stream_test_sound() {
+  static int run_count = 0;
   // Make up some sound to output with sin waveform
   size_t len;
   static float x = 0.0;
-  static float x_step = 0.05;
+  // Special step so that we have a whole cycle count at the end of the buffer
+  // (Assuming buffer is 2048 bytes or multiple)
+  static float x_step = 0.049087385;
   unsigned char *stream = StreamBuf(&len);
   if (stream) {
+    if (run_count > 1) {
+      StreamReady();
+      return;
+    }
     // We are waiting on more bytes to stream
     for (unsigned char *cursor = stream; cursor != stream + len; cursor++) {
       *cursor = (unsigned char)(sinf(x) * 100 + 128.0);
       x += x_step;
     }
+    putchar('*');
+    fflush(stdout);
+    run_count++;
     StreamReady();
   }
 }
@@ -32,7 +42,10 @@ int main() {
     printf("Can't init sound card \n");
     return 1;
   }
-  StreamStart(22050);
+  short minor, major;
+  sb_dsp_version(&major, &minor);
+  printf("DSP version: %hd.%d\n", major, minor);
+  StreamStart(44100); // previously was 22050
   printf("Initialization successful\nPress any key to exit\n");
   // CHECKRESULTP(init_blaster(),
   //              "Initialization failure. Don't you have a sound card?\n");
