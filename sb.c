@@ -48,15 +48,15 @@
 
 #define sb_writedac(x)                                                         \
   {                                                                            \
-    while (inportb(sb_ioaddr + SB_DSP_WRITE_STATUS) & 0x80)                    \
+    while (INP(sb_ioaddr + SB_DSP_WRITE_STATUS) & 0x80)                        \
       ;                                                                        \
-    outportb(sb_ioaddr + SB_DSP_WRITE_DATA, (x));                              \
+    OUT(sb_ioaddr + SB_DSP_WRITE_DATA, (x));                                   \
   }
 
 #define sb_writemixer(x, y)                                                    \
   {                                                                            \
-    outportb(sb_ioaddr + SB_MIXER_ADDRESS, (x));                               \
-    outportb(sb_ioaddr + SB_MIXER_DATA, (y));                                  \
+    OUT(sb_ioaddr + SB_MIXER_ADDRESS, (x));                                    \
+    OUT(sb_ioaddr + SB_MIXER_DATA, (y));                                       \
   }
 
 /*  GO32 DPMI structs for accessing DOS memory. */
@@ -106,28 +106,31 @@ static int HIGHSPEED; /* flag for normal/highspeed DMA */
  */
 #define DMA_CHUNK (2048)
 
-static char sb_stream_buf[DMA_CHUNK];
-static char sb_stream_silence[DMA_CHUNK];
+static unsigned char sb_stream_buf[DMA_CHUNK];
+static unsigned char sb_stream_silence[DMA_CHUNK];
 static volatile char sb_stream_ready = 0;
 
+// Interrupt routine
 void sb_intr_play(_go32_dpmi_registers *reg) {
   register unsigned n = sb_bufnum; /* buffer we just played	*/
 
-  inportb(sb_ioaddr + SB_DSP_DATA_AVAIL); /* Acknowledge soundblaster */
+  INP(sb_ioaddr + SB_DSP_DATA_AVAIL); /* Acknowledge soundblaster */
 
   sb_play_buffer(1 - n); /* Start next buffer player */
 
   sb_fill_buffer(n); /* Fill this buffer for next time around */
 
-  outportb(0x20, 0x20); /* Acknowledge the interrupt */
+  OUT(0x20, 0x20); /* Acknowledge the interrupt */
 
   enable();
 }
+void sb_intr_play_end() {}
 
 /* Fill buffer n with the next data. */
 void sb_fill_buffer(register unsigned n) {
   if (sb_stream_ready) {
     sb_buflen[n] = DMA_CHUNK;
+    // TODO: move this out of interrupt routine
     dosmemput(sb_stream_buf, DMA_CHUNK, (unsigned long)sb_buf[n]);
     sb_stream_ready = 0;
   } else {
@@ -135,6 +138,7 @@ void sb_fill_buffer(register unsigned n) {
     dosmemput(sb_stream_silence, DMA_CHUNK, (unsigned long)sb_buf[n]);
   }
 }
+void sb_fill_buffer_end() {}
 
 void sb_play_buffer(register unsigned n) {
   int t;
@@ -145,25 +149,25 @@ void sb_play_buffer(register unsigned n) {
   }
   int interrupt_state = disable();
 
-  im = inportb(0x21); /* Enable interrupts on PIC */
+  im = INP(0x21); /* Enable interrupts on PIC */
   tm = ~(1 << sb_irq);
-  outportb(0x21, im & tm);
+  OUT(0x21, im & tm);
 
-  outportb(SB_DMA_MASK, 5); /* Set DMA mode 'play' */
-  outportb(SB_DMA_FF, 0);
-  outportb(SB_DMA_MODE, 0x49);
+  OUT(SB_DMA_MASK, 5); /* Set DMA mode 'play' */
+  OUT(SB_DMA_FF, 0);
+  OUT(SB_DMA_MODE, 0x49);
 
   sb_bufnum = n; /* Set transfer address */
   t = (int)((unsigned long)sb_buf[n] >> 16);
-  outportb(SB_DMAPAGE + 3, t);
+  OUT(SB_DMAPAGE + 3, t);
   t = (int)((unsigned long)sb_buf[n] & 0xFFFF);
-  outportb(SB_DMA + 2 * sb_dmachan, t & 0xFF);
-  outportb(SB_DMA + 2 * sb_dmachan, t >> 8);
+  OUT(SB_DMA + 2 * sb_dmachan, t & 0xFF);
+  OUT(SB_DMA + 2 * sb_dmachan, t >> 8);
   /* Set transfer length byte count */
-  outportb(SB_DMA + 2 * sb_dmachan + 1, (sb_buflen[n] - 1) & 0xFF);
-  outportb(SB_DMA + 2 * sb_dmachan + 1, (sb_buflen[n] - 1) >> 8);
+  OUT(SB_DMA + 2 * sb_dmachan + 1, (sb_buflen[n] - 1) & 0xFF);
+  OUT(SB_DMA + 2 * sb_dmachan + 1, (sb_buflen[n] - 1) >> 8);
 
-  outportb(SB_DMA_MASK, sb_dmachan); /* Unmask DMA channel */
+  OUT(SB_DMA_MASK, sb_dmachan); /* Unmask DMA channel */
 
   // We don't want to enable interrupts early
   if (interrupt_state)
@@ -184,6 +188,7 @@ void sb_play_buffer(register unsigned n) {
 
   sb_dma_active = 1; /* A sound is playing now. */
 }
+void sb_play_buffer_end() {}
 
 /* Set sampling/playback rate.
  * Parameter is rate in Hz (samples per second).
@@ -223,7 +228,7 @@ RESULT sb_getparams() {
   CHECKERR(blaster_env == NULL, "BLASTER environment variable isn't defined");
 
   blaster_envc = (char *)malloc(strlen(blaster_env) + 1);
-  OOMERR(blaster_envc);
+  OOMERROR(blaster_envc);
   strcpy(blaster_envc, blaster_env);
 
   env_tok = strtok(blaster_envc, " ");
@@ -264,16 +269,18 @@ RESULT sb_getparams() {
     env_tok = strtok(NULL, " ");
   }
   free(blaster_envc);
-  return RESULT_OK;
+  return RES_OK;
 onerror:
   if (blaster_envc)
     free(blaster_envc);
-  return RESULT_ERR;
+  return RES_ERR;
+onoom:
+  exit(1);
 }
 
 void sb_reset() {
   // TODO: return res
-  RESULT res = RESULT_ERR;
+  RESULT res = RES_ERR;
   unsigned int i;
   OUT(sb_ioaddr + 0x6, 1);
   // wait for some number of cycles
@@ -286,7 +293,7 @@ void sb_reset() {
       data = INP(sb_ioaddr + SB_DSP_READ_DATA);
       if (data == 0xaa) {
         printf("Successful init after %d loops\n", i);
-        res = RESULT_OK;
+        res = RES_OK;
         break;
       }
     }
@@ -296,10 +303,10 @@ void sb_reset() {
 
 unsigned char sb_read_dac() {
   for (;;) {
-    if (inportb(sb_ioaddr + SB_DSP_DATA_AVAIL) & 0x080)
+    if (INP(sb_ioaddr + SB_DSP_DATA_AVAIL) & 0x080)
       break;
   }
-  return (inportb(sb_ioaddr + SB_DSP_READ_DATA));
+  return (INP(sb_ioaddr + SB_DSP_READ_DATA));
 }
 
 void sb_install_interrupts(void (*sb_intr)(_go32_dpmi_registers *)) {
@@ -436,9 +443,9 @@ int sb_cleanup() {
 int sb_read_counter(void)
 /* tells you how many bytes DMA play/recording have still to be done */
 {
-  outportb(SB_DMA_FF, 0);
-  return (inportb(SB_DMA + 2 * sb_dmachan + 1) +
-          256 * inportb(SB_DMA + 2 * sb_dmachan + 1));
+  OUT(SB_DMA_FF, 0);
+  return (INP(SB_DMA + 2 * sb_dmachan + 1) +
+          256 * INP(SB_DMA + 2 * sb_dmachan + 1));
 }
 
 void sb_dsp_version(short *major, short *minor) {

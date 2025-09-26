@@ -245,7 +245,7 @@ int get_interrupt_counter() { return interrupt_counter; }
 
 // Initializes soundblaster's DSP
 RESULT init_dsp() {
-  RESULT res = RESULT_ERR;
+  RESULT res = RES_ERR;
   unsigned int i;
   OUT(base_io + 0x6, 1);
   // wait for some number of cycles
@@ -258,7 +258,7 @@ RESULT init_dsp() {
       data = INP(base_io + 0xa);
       if (data == 0xaa) {
         printf("Successful init after %d loops\n", i);
-        res = RESULT_OK;
+        res = RES_OK;
         break;
       }
     }
@@ -266,7 +266,7 @@ RESULT init_dsp() {
   return res;
 }
 
-RESULT read_env_string() {
+void read_env_string() {
   char *blaster_env = getenv("BLASTER");
   char *blaster_envc = NULL;
   char *env_tok = NULL;
@@ -275,7 +275,7 @@ RESULT read_env_string() {
   CHECKERR(blaster_env == NULL, "BLASTER environment variable isn't defined");
 
   blaster_envc = (char *)malloc(strlen(blaster_env) + 1);
-  OOMERR(blaster_envc);
+  OOMERROR(blaster_envc);
   strcpy(blaster_envc, blaster_env);
 
   env_tok = strtok(blaster_envc, " ");
@@ -316,25 +316,32 @@ RESULT read_env_string() {
     env_tok = strtok(NULL, " ");
   }
   free(blaster_envc);
-  return RESULT_OK;
+  return;
 onerror:
   if (blaster_envc)
     free(blaster_envc);
-  return RESULT_ERR;
+  last_error = RES_ERR;
+  return;
+onoom:
+  exit(1);
 }
 
-RESULT init_blaster() {
-  RESULT result = RESULT_OK;
-  CHECKRESULT(read_env_string());
+void init_blaster() {
+  RESULT result = RES_OK;
+  read_env_string();
+  PROPAGATEERR();
   if (base_io == -1 || irq == -1 || dma8 == -1 || dma16 == -1) {
-    result = RESULT_ERR;
+    // result = RES_ERR;
+    last_error = RES_ERR;
     goto onerror;
   }
-  CHECKRESULT(init_dsp());
+  init_dsp();
+  PROPAGATEERR();
   init_sb_intr();
-  return RESULT_OK;
+  return;
 onerror:
-  return result;
+onpropagate:
+  return;
 }
 
 void release_blaster() {
